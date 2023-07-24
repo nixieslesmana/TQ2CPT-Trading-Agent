@@ -245,4 +245,4 @@ dependencies: # spyder -> py37
       - xlsxwriter==3.0.3
       - yfinance==0.1.74
       - zipp==3.8.1
-prefix: C:\Users\Marcus\anaconda3\envs\rl
+prefix: C:\Users\XXXX\anaconda3\envs\rl
