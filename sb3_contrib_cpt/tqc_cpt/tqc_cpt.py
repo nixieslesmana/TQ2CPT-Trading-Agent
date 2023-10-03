@@ -501,71 +501,7 @@ class TQC_CPT(OffPolicyAlgorithm):
                 crash_print = True
             
             if self._n_updates % 700 in [1] or crash_print == True or self._n_updates in []: #[1108, 1112, 1115, 1114, 1164, 1214, 1274, 1332, 1335, 1338]: 
-                #len(crash_iters) % 700 == 1: 
                 print('@main, n_updates:', self._n_updates)
-                '''
-                print('---')
-                print('replay_data', self.replay_buffer.size())
-                print('obs:', replay_data.observations[:, 0].tolist(), replay_data.observations[:, 0].mean())
-                batch_inds = range(0, self.replay_buffer.size())
-                #print(self.replay_buffer._get_samples(batch_inds, env=self._vec_normalize_env))
-                all_data = self.replay_buffer._get_samples(batch_inds, env=self._vec_normalize_env)
-                print(all_data.observations[:, 0].tolist())
-                print(all_data.actions[-2:, :])
-                #print(all_data.flatten().tolist())
-                
-                # SOMETHING IS WRONG DURING FIRST UPDATE -- IS IT DATA OR ARCHITECTURE?
-                print('---')
-                '''
-                
-                '''
-                runID = datetime.now().strftime("%d%m%y%H%M%S")
-                gaussActs, log_prob_u, presum_logProb, mean_acts, std = self.actor.action_dist.log_prob_u()
-                
-                #log_prob_a = log_prob_u - th.sum(th.log(1 - actions_pi**2 + self.actor.action_dist.epsilon), dim=1)
-                
-                to_append = []
-                
-                # header!
-                to_add1 = ['logPdf_a'] + ['']
-                to_add1 += ['logPdf_u'] + ['']
-                to_add1 += ['logPdf_u per stock'] + ['' for _ in range(30)]
-                to_add1 += ['dist(.|obs) mean'] + ['' for _ in range(30)]
-                to_add1 += ['dist(.|obs) logstd'] + ['' for _ in range(30)]
-                to_add1 += ['a ~ tanh(u)'] + ['' for _ in range(30)]
-                to_add1 += ['u ~ dist(.|obs)'] + ['' for _ in range(30)]
-                to_add1 += ['obs']
-                to_append += [to_add1]
-                
-                for batchID in range(256):
-                    
-                    to_add = log_prob.tolist()[batchID] + [''] # = log_prob_a, negative when crashIter, #to_add += [log_prob_a[batchID].item()] + ['']
-                    to_add += [log_prob_u[batchID].item()] + ['']
-                    to_add += presum_logProb[batchID].tolist() + [''] # negative unbounded
-                    
-                    to_add += mean_acts[batchID].tolist() + ['']
-                    to_add += std[batchID].tolist() + ['']
-                    
-                    to_add += actions_pi[batchID].tolist() + ['']
-                    to_add += gaussActs[batchID].tolist() + ['']
-                    
-                    to_add += replay_data.observations[batchID].tolist()
-                    
-                    to_append += [to_add]
-                 
-                try:
-                    if ent_coef_loss.item() > 6:  
-                        filename = './output/entLossJump_s{}_n{}_r{}_.csv'.format(self.seed, self._n_updates, runID)
-                    else:
-                        filename = './output/entLossJump_s{}_n{}_r{}.csv'.format(self.seed, self._n_updates, runID)
-                except:
-                    filename = './output/entLossJump_s{}_n{}_r{}.csv'.format(self.seed, self._n_updates, runID)
-                    
-                f = open(filename, 'a', newline = '')
-                writer = csv.writer(f)
-                writer.writerows(to_append)
-                f.close()
-                '''
             ###################################################################
             
             # Optimize entropy coefficient, also called entropy temperature or alpha in the paper
@@ -629,16 +565,7 @@ class TQC_CPT(OffPolicyAlgorithm):
             self.critic.optimizer.step()
             
             ###################################################################
-            ''' ### CRITIC LOSS INCREASE - Z PRED NEGATIVE STILL?
-            # tried: (i) KMAX=10, act [explodes] (ii) preprocess_act (iii) KMAX=1***
-            # seems tht ACTOR LOSS INCREASE DOMINATES CRITIC LOSS DECREASE
-            # cld be cause CRITIC UPDATE NOT FINISHED when ACTOR UPDATES
-            
-            # (iii) critic increase less, still dominated by actor
-            # TIME TO PRINT!!!!!
-            
-            ### MEAN ACTS INCREASE AGAIN... NO CRASH (DIFFERENT ACROSS OBS).. BUT LOG_STD CRASH..
-            ### WHEN DID MEAN ACTS CROSS?
+            ''' 
             if self._n_updates % 700 == 1 or crash_print == True or self._n_updates in []: 
                 #[1108, 1112, 1115, 1114, 1164, 1214, 1274, 1332, 1335, 1338]: 
                 # make .csv() print criticLoss, dim = (256, 3*25)
@@ -681,17 +608,6 @@ class TQC_CPT(OffPolicyAlgorithm):
             
             actor_loss = (ent_coef * log_prob - qf_pi).mean()
             
-            '''
-            print('===')
-            # after critic update, MISMATCH! Numeric issues..
-            print('CRITIC LOSS', critic_losses)
-            print('qf_pi:', qf_pi.flatten().tolist()[2]) # , qf_pi.shape)
-            print('actor_qtiles:', actor_quantiles[2].tolist()) #### CAUSING ERRORS!
-            #print('obs:', replay_data.observations[2].tolist())
-            #print('actions_pi:', actions_pi[2].tolist())#, actions_pi.shape)
-            print('===')
-            '''
-            
             # CRITIC OBS PREPROCESS DOES NOT AFFECT OUTPUT?, BUT qf_pi w or w/o backward AFFECT!
             actor_losses.append(actor_loss.item())
             
@@ -711,33 +627,7 @@ class TQC_CPT(OffPolicyAlgorithm):
                     to_write += ['p.shape: ' + str(p.shape)]
                     to_write += ['p:' + str(p.detach().numpy())]
                     to_write += ['\n']
-                # + str([p.detach().numpy() for p in self.actor.parameters()]) + '\n']
-                #print('p.shape:', [p.size() for p in self.actor.parameters()])
-                # [torch.Size([256, 181]), torch.Size([256]), 
-                # torch.Size([256, 256]), torch.Size([256]), 
-                # torch.Size([30, 256]), torch.Size([30]), torch.Size([30, 256]), torch.Size([30])]
                 
-                '''################# IS OBS UNSCALED THE ISSUE ?? #################
-                features = self.actor.extract_features(obs) # = obs by current definition (NO BATCHNORM?)
-                latent_pi = self.actor.latent_pi(features)
-                mean_actions = self.mu(latent_pi)
-                log_std = self.log_std(latent_pi)
-                
-                # Original Implementation to cap the standard deviation
-                log_std = th.clamp(log_std, LOG_STD_MIN, LOG_STD_MAX) # LOG_STD_MAX = 2, LOG_STD_MIN = -20
-                
-                # check which line causes crash..
-                th.Tensor([-20, 2]).exp()
-                Out[43]: tensor([2.0612e-09, 7.3891e+00])
-                # std moves from one clamp to another
-                # log_std TOO LARGE OR TOO SMALL
-                
-                from stable_baselines.common.input import observation_input
-                observation_input(ob_space, batch_size, scale = scale)
-                
-                sb3 only has image_scale: print('actor check scale image:', self.actor.normalize_images)
-                '''
-            
             ####################### Optimize the actor ########################
             self.actor.optimizer.zero_grad()
             #with th.autograd.detect_anomaly():
@@ -780,8 +670,6 @@ class TQC_CPT(OffPolicyAlgorithm):
         self.logger.record("train/critic_loss", np.mean(critic_losses))
         if len(ent_coef_losses) > 0:
             self.logger.record("train/ent_coef_loss", np.mean(ent_coef_losses))
-
-        #print('@tqc-cpt, ACTOR LOSS:', actor_losses, actor_losses1, actor_losses2) # qf_pi DIFFERENT!!!
 
         if logger_dict is not None:
             logger_dict['n_updates'] = self._n_updates
